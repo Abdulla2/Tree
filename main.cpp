@@ -11,10 +11,10 @@ template <typename T>
 class Tree
 {
 public:
-	Tree(T&& data): m_data{std::make_shared<T>(data)}, m_iter{this, false} 
+	Tree(T&& data): m_data{std::make_shared<T>(data)}//, m_iter{this, false} 
 	{
 	}
-	Tree(T&& data, Tree* parent): m_data{std::make_shared<T>(data)}, m_parent{parent} ,m_iter{this, false}
+	Tree(T&& data, Tree* parent): m_data{std::make_shared<T>(data)}, m_parent{parent}// ,m_iter{this, false}
 	{
 	}
 	void addChild(T&& data)
@@ -109,8 +109,13 @@ public:
 		Iter(std::nullptr_t node): m_node{nullptr}
 		{
 		}
-		Iter(Tree* node, bool is_root_node) : m_node{node}, m_is_root_node{is_root_node}
-		{
+		Iter(Tree* node, bool is_root_node) : m_node{node}
+		{ 
+			if(is_root_node)
+			{
+				m_root = node;
+			}
+			
 		}
 		~Iter()
 		{
@@ -131,51 +136,64 @@ public:
 		}
 		Iter& operator++()
 		{
-			std::cout << "Entered ++ op: state: " << static_cast<int>(m_state) << "\n";
+			// std::cout << "Entered ++ op: state: " << static_cast<int>(m_state) << "\n";
 			switch(m_state)
 			{
 				case node_iter_state::init_state:
 					/*Todo: This State is redundant and will cause issues*/
-					m_curr_child = m_node->m_children.begin();
+					m_node->m_curr_child = m_node->m_children.begin();
 					m_state = node_iter_state::children_iter_state;
-						std::cout << "this " << this << "child: " << std::addressof(m_curr_child->m_iter) << "\n";
-						std::cout << "m_node " << m_node << "m_child: " << std::addressof(*m_curr_child) << "\n";
-					return *this;
+						// std::cout << "this " << this << "child: " << std::addressof(m_curr_child->m_iter) << "\n";
+						// std::cout << "m_node " << m_node << "m_child: " << std::addressof(*m_node->m_curr_child) << "\n";
+					// return *this;
+					
+					[[fallthrough]];
 				case node_iter_state::children_iter_state:
-					if(m_curr_child != m_node->m_children.end())
+					if(m_node->m_curr_child != m_node->m_children.end())
 					{
-						std::cout << "looping children\n";
+						// std::cout << "looping children\n";
 						// auto retval = m_curr_child;
-						m_curr_child->m_iter = Iter{std::addressof(*m_curr_child),false};
-						std::cout << "this " << this << "child: " << std::addressof(m_curr_child->m_iter) << "\n";
-						std::cout << "m_node " << m_node << "m_child: " << std::addressof(*m_curr_child) << "\n";
-						return m_curr_child->m_iter;
+						// m_curr_child->m_iter = Iter{std::addressof(*m_curr_child),false};
+						m_node = std::addressof(*m_node->m_curr_child);
+						// m_is_root_node = false;
+						m_state = node_iter_state::init_state;
+						
+						// std::cout << "m_node " << m_node << "m_child: " << std::addressof(*m_node->m_curr_child) << "\n";
+						return *this;
+						// std::cout << "this " << this << "child: " << std::addressof(m_curr_child->m_iter) << "\n";
+						// return m_curr_child->m_iter;
 					}
 					else
 					{
 
-						std::cout << "finished children\n";
-						m_state = node_iter_state::finished_state;
-						if(m_is_root_node)
+						// std::cout << "finished children\n";
+						// m_state = node_iter_state::finished_state;
+						if(m_node == m_root)
 						{
 							
-							std::cout << "last child\n";
+							// std::cout << "last child\n";
 							m_node = nullptr;
 							return *this;
 						}
 						else if(m_node->m_parent != nullptr)
 						{
-							auto sibling = ++m_node->m_parent->m_iter.m_curr_child;
+							auto sibling = ++m_node->m_parent->m_curr_child;
 							if(sibling != m_node->m_parent->m_children.end())
 							{
-								std::cout << "going to sibling no children left\n";
-								sibling->m_iter = Iter{std::addressof(*sibling),false};
-								return sibling->m_iter;
+								// std::cout << "going to sibling no children left\n";
+
+								m_node = std::addressof(*sibling);
+								// m_is_root_node = false;
+								m_state = node_iter_state::init_state;
+								return *this;
 							}
 							else
 							{
-								std::cout << "going to parent no children nor siblings left\n";
-								return ++m_node->m_parent->m_iter;
+								// std::cout << "going to parent no children nor siblings left\n";
+								m_node = m_node->m_parent;
+								m_state = node_iter_state::children_iter_state;
+								
+								return ++(*this);
 							}
 						}
 						else
@@ -196,8 +214,10 @@ public:
 			}
 		}
 	// private:
-		bool m_is_root_node{false};
+		// bool m_is_root_node{false};
+		Tree* m_root{};
 		Tree* m_node{};
+
 		// bool 
 		enum class node_iter_state
 		{
@@ -207,7 +227,6 @@ public:
 		};
 
 		node_iter_state m_state{node_iter_state::init_state};
-		typename std::vector<Tree>::iterator m_curr_child{};
 
 	};
 	Iter begin()
@@ -230,6 +249,7 @@ private:
 	std::shared_ptr<T> m_data{};
 	Tree* m_parent{};
 	Tree* m_root{nullptr};
+	typename std::vector<Tree>::iterator m_curr_child{}; // For the Iter
 	// Iter m_iter{};
 };
 
@@ -319,15 +339,51 @@ int main()
 	std::cout << *it1.m_node->getData() << "  " <<  it1.m_node << "  2 \n";
 	++it1;
 	std::cout << *it1.m_node->getData() << "  " <<  it1.m_node << "  3 \n";
-	#if 0
+	// #if 0
 	std::cout << "-----------------" << std::endl;
 
+	std::cout << "-----------------" << std::endl;
 	for (auto elem : parent) {
-	
+
 		std::cout << "elem: " << *elem.getData() << '\n';
 	}
 
-	#endif
+	std::cout << "-----------------" << std::endl;
+	std::cout << "-----------------" << std::endl;
+	parent.addChild(9);
+	parent.getChildren().back().addChild(100);
+	parent.getChildren().back().addChild(200);
+	parent.getChildren().at(1).getChildren().pop_back();
+
+	std::cout << "-----------------" << std::endl;
+	std::cout << "-----------------" << std::endl;
+
+	print_all(parent);
+	std::cout << "-----------------" << std::endl;
+	std::cout << "-----------------" << std::endl;
+	Tree<float> parent3{9.0};
+	parent3.addChild(8.0);
+	parent3.getChildren().at(0).addChild(7.0);
+	parent3.getChildren().at(0).getChildren().at(0).addChild(6.0);
+	std::cout << "-----------------" << std::endl;
+	std::cout << "-----------------" << std::endl;
+	for (auto elem : parent) {
+		std::cout << "elem: " << *elem.getData() << '\n';
+	}
+	std::cout << "-----------------" << std::endl;
+	std::cout << "-----------------" << std::endl;
+	for (auto elem : parent3) {
+		std::cout << "elem: " << *elem.getData() << '\n';
+	}
+	std::cout << "-----------------" << std::endl;
+	std::cout << "-----------------" << std::endl;
+
+	for(auto elem: parent.getChildren().at(0))
+	{
+		std::cout << "elem: " << *elem.getData() << '\n';
+	}
+	// #endif
+	// #endif
 
 	return 0;
 }
