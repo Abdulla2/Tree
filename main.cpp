@@ -114,6 +114,7 @@ public:
 			if(is_root_node)
 			{
 				m_root = node;
+				m_node->m_curr_child = m_node->m_children.begin();
 			}
 			
 		}
@@ -129,89 +130,92 @@ public:
 		{
 			return *m_node;
 		}
-		void print_data()
+		Iter operator++(int)
 		{
-
-		// std::cout << "
+			auto temp = *this;
+			++(*this);
+			return temp;
 		}
 		Iter& operator++()
 		{
 			// std::cout << "Entered ++ op: state: " << static_cast<int>(m_state) << "\n";
-			switch(m_state)
+			// switch(m_state)
+			// {
+			// case node_iter_state::init_state:
+			// 	m_node->m_curr_child = m_node->m_children.begin();
+			// 	// m_state = node_iter_state::children_iter_state;
+			// 		// std::cout << "this " << this << "child: " << std::addressof(m_curr_child->m_iter) << "\n";
+			// 		// std::cout << "m_node " << m_node << "m_child: " << std::addressof(*m_node->m_curr_child) << "\n";
+			// 	// return *this;
+			//
+			// 	[[fallthrough]];
+			// case node_iter_state::children_iter_state:
+			if(m_node->m_curr_child != m_node->m_children.end())
 			{
-				case node_iter_state::init_state:
-					/*Todo: This State is redundant and will cause issues*/
-					m_node->m_curr_child = m_node->m_children.begin();
-					m_state = node_iter_state::children_iter_state;
-						// std::cout << "this " << this << "child: " << std::addressof(m_curr_child->m_iter) << "\n";
-						// std::cout << "m_node " << m_node << "m_child: " << std::addressof(*m_node->m_curr_child) << "\n";
-					// return *this;
-					
-					[[fallthrough]];
-				case node_iter_state::children_iter_state:
-					if(m_node->m_curr_child != m_node->m_children.end())
+				// std::cout << "looping children\n";
+				// auto retval = m_curr_child;
+				// m_curr_child->m_iter = Iter{std::addressof(*m_curr_child),false};
+				m_node = std::addressof(*m_node->m_curr_child);
+				// m_is_root_node = false;
+				// m_state = node_iter_state::init_state;
+
+				m_node->m_curr_child = m_node->m_children.begin();
+
+				// std::cout << "m_node " << m_node << "m_child: " << std::addressof(*m_node->m_curr_child) << "\n";
+				return *this;
+				// std::cout << "this " << this << "child: " << std::addressof(m_curr_child->m_iter) << "\n";
+				// return m_curr_child->m_iter;
+			}
+			else
+		{
+
+				// std::cout << "finished children\n";
+				// m_state = node_iter_state::finished_state;
+				if(m_node == m_root)
+				{
+
+					// std::cout << "last child\n";
+					m_node = nullptr;
+					return *this;
+				}
+				else if(m_node->m_parent != nullptr)
+				{
+					auto sibling = ++m_node->m_parent->m_curr_child;
+					if(sibling != m_node->m_parent->m_children.end())
 					{
-						// std::cout << "looping children\n";
-						// auto retval = m_curr_child;
-						// m_curr_child->m_iter = Iter{std::addressof(*m_curr_child),false};
-						m_node = std::addressof(*m_node->m_curr_child);
+						// std::cout << "going to sibling no children left\n";
+
+						m_node = std::addressof(*sibling);
 						// m_is_root_node = false;
-						m_state = node_iter_state::init_state;
-						
-						// std::cout << "m_node " << m_node << "m_child: " << std::addressof(*m_node->m_curr_child) << "\n";
+						m_node->m_curr_child = m_node->m_children.begin();
+						// m_state = node_iter_state::init_state;
 						return *this;
-						// std::cout << "this " << this << "child: " << std::addressof(m_curr_child->m_iter) << "\n";
-						// return m_curr_child->m_iter;
 					}
 					else
-					{
+				{
+						// std::cout << "going to parent no children nor siblings left\n";
+						m_node = m_node->m_parent;
+						// m_state = node_iter_state::children_iter_state;
 
-						// std::cout << "finished children\n";
-						// m_state = node_iter_state::finished_state;
-						if(m_node == m_root)
-						{
-							
-							// std::cout << "last child\n";
-							m_node = nullptr;
-							return *this;
-						}
-						else if(m_node->m_parent != nullptr)
-						{
-							auto sibling = ++m_node->m_parent->m_curr_child;
-							if(sibling != m_node->m_parent->m_children.end())
-							{
-								// std::cout << "going to sibling no children left\n";
-
-								m_node = std::addressof(*sibling);
-								// m_is_root_node = false;
-								m_state = node_iter_state::init_state;
-								return *this;
-							}
-							else
-							{
-								// std::cout << "going to parent no children nor siblings left\n";
-								m_node = m_node->m_parent;
-								m_state = node_iter_state::children_iter_state;
-								
-								return ++(*this);
-							}
-						}
-						else
-						{
-							std::cout << "Error what to do?? returned a unique ptr to a newly allocated Iter that should be enough\n";
-
-							exit(-1);
-							return *this;
-							// return std::make_unique(Iter{m_node, true});
-						}
+						return ++(*this);
 					}
-				break;
-				default:
-				std::cout << "ERRROR\n";
+				}
+				else
+			{
+					std::cout << "Error what to do?? returned a unique ptr to a newly allocated Iter that should be enough\n";
+
 					exit(-1);
 					return *this;
-				break;
+					// return std::make_unique(Iter{m_node, true});
+				}
 			}
+			// break;
+			// default:
+			// std::cout << "ERRROR\n";
+			// 	exit(-1);
+			// 	return *this;
+			// break;
+			// }
 		}
 	// private:
 		// bool m_is_root_node{false};
@@ -219,15 +223,15 @@ public:
 		Tree* m_node{};
 
 		// bool 
-		enum class node_iter_state
-		{
-			init_state,
-			children_iter_state,
-			finished_state
-		};
-
-		node_iter_state m_state{node_iter_state::init_state};
-
+		// enum class node_iter_state
+		// {
+		// 	init_state,
+		// 	children_iter_state,
+		// 	finished_state
+		// };
+		//
+		// node_iter_state m_state{node_iter_state::init_state};
+		//
 	};
 	Iter begin()
 	{
