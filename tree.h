@@ -24,17 +24,22 @@ public:
 		m_children.emplace_back(std::make_unique<Tree>(std::move(data), this));
 	}
 
+	[[nodiscard]] Tree* getParent() 
+	{
+		return m_parent;
+	}
+
 	void dropChild(int idx)
 	{
 		m_children.erase(m_children.begin() + idx);
 	}
 
-	std::shared_ptr<T> getData() const
+	[[nodiscard]] std::shared_ptr<T> getData() const
 	{
 		return m_data;
 	}
 
-	std::vector<std::unique_ptr<Tree>>& getChildren() 
+	[[nodiscard]] std::vector<std::unique_ptr<Tree>>& getChildren() 
 	{
 		return m_children;
 	}
@@ -142,9 +147,11 @@ public:
 
 private:
 	std::vector<std::unique_ptr<Tree>> m_children{};
-	// I think of changing the shared pointer to the data itself so that the tree class holds the data inside it
+	// std::vector<std::unique_ptr<Tree>>& m_children_copy{};
+	// Todo: I think of changing the shared pointer to the data itself so that the tree class holds the data inside it
 	std::shared_ptr<T> m_data{};
 	Tree* m_parent{};
 	// Tree* m_root{nullptr};
+	// Todo: change this to not allow the tree node itself to hold iterator state
 	typename std::vector<std::unique_ptr<Tree>>::iterator m_curr_child{}; // For the Iter
 };
